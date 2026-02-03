@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "漫画サムネイルメーカー",
+  "version": "1.0.0",
+  "description": "背景画像と漫画表紙を合成してサムネイル画像を作成",
+  "permissions": [
+    "storage",
+    "sidePanel"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "漫画サムネイルメーカーを開く"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
