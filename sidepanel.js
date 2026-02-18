@@ -8,6 +8,22 @@ let selectedBackgroundIndex = null;
 let selectedBackgroundImage = null;
 let coverImage = null;
 let coverImageFile = null; // 表紙画像のファイル情報を保存
+let currentPosition = 'center'; // 'center' or 'left'
+
+// 全巻特典用変数
+let isZenkanMode = false;
+let zenkanImages = [null, null, null]; // [img1, img2, img3]
+let zenkanFiles = [null, null, null];
+// Canvas: 1280x1280
+// Left: 840x1280
+// Right: 420x630 (Gap 20px)
+const ZENKAN_COORDS = [
+  { x: 0, y: 0, w: 840, h: 1280 },    // ① 左大
+  { x: 860, y: 0, w: 420, h: 630 },   // ② 右上
+  { x: 860, y: 650, w: 420, h: 630 }  // ③ 右下
+];
+
+
 
 // DOM要素
 const presetGrid = document.getElementById('presetGrid');
@@ -19,6 +35,15 @@ const uploadBtn = document.getElementById('uploadBtn');
 const previewCanvas = document.getElementById('previewCanvas');
 const downloadBtn = document.getElementById('downloadBtn');
 const ctx = previewCanvas.getContext('2d');
+
+// 全巻用要素
+const standardCoverSection = document.getElementById('standardCoverSection');
+const zenkanCoverSection = document.getElementById('zenkanCoverSection');
+const zenkanInputs = [
+  document.getElementById('zenkanInput1'),
+  document.getElementById('zenkanInput2'),
+  document.getElementById('zenkanInput3')
+];
 
 // 初期化
 document.addEventListener('DOMContentLoaded', async () => {
@@ -34,6 +59,19 @@ function setupEventListeners() {
 
   uploadBtn.addEventListener('click', () => coverImageInput.click());
   coverImageInput.addEventListener('change', handleCoverImageUpload);
+
+  // 配置切り替え
+  document.querySelectorAll('input[name="coverPosition"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      currentPosition = e.target.value;
+      updatePreview();
+    });
+  });
+
+  // 全巻用イベントリスナー
+  zenkanInputs.forEach((input, index) => {
+    input.addEventListener('change', (e) => handleZenkanImageUpload(e, index));
+  });
 
   downloadBtn.addEventListener('click', downloadImage);
 }
@@ -82,10 +120,33 @@ async function loadPresets() {
     presetItem.addEventListener('click', () => selectBackground(i, presetItem));
     presetGrid.appendChild(presetItem);
   }
+
+  // 全巻特典用プリセット追加
+  const zenkanPreset = document.createElement('div');
+  zenkanPreset.className = 'preset-item';
+  zenkanPreset.dataset.mode = 'zenkan';
+
+  const zenkanLabel = document.createElement('div');
+  zenkanLabel.className = 'preset-number';
+  zenkanLabel.textContent = '全巻';
+  zenkanPreset.appendChild(zenkanLabel);
+
+  const zenkanImg = document.createElement('img');
+  zenkanImg.src = 'backgrounds/zenkan.png';
+  zenkanImg.alt = '全巻特典レイアウト';
+  zenkanImg.onerror = () => { zenkanImg.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiA5IiBmaWxsPSIjNDQ0Ij48cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iOSIvPjx0ZXh0IHg9IjUiIHk9IjUiIGZpbGw9IiNmZmYiIGZvbnQtc2l6ZT0iMSI+WmVua2FuPC90ZXh0Pjwvc3ZnPg=='; }; // Fallback
+  zenkanPreset.appendChild(zenkanImg);
+
+  zenkanPreset.addEventListener('click', () => selectZenkanMode(zenkanPreset));
+  presetGrid.appendChild(zenkanPreset);
 }
 
 // 背景選択
 function selectBackground(index, element) {
+  // モードリセット
+  isZenkanMode = false;
+  toggleInputSection(false);
+
   // 既存の選択を解除
   document.querySelectorAll('.preset-item').forEach(item => {
     item.classList.remove('selected');
@@ -102,6 +163,37 @@ function selectBackground(index, element) {
     selectedBackgroundImage.onload = () => {
       updatePreview();
     };
+  }
+}
+
+// 全巻モード選択
+function selectZenkanMode(element) {
+  isZenkanMode = true;
+  toggleInputSection(true);
+
+  // 既存の選択を解除
+  document.querySelectorAll('.preset-item').forEach(item => {
+    item.classList.remove('selected');
+  });
+
+  element.classList.add('selected');
+  selectedBackgroundIndex = 'zenkan';
+
+  // 背景画像読み込み
+  const img = element.querySelector('img');
+  selectedBackgroundImage = new Image();
+  selectedBackgroundImage.src = img.src;
+  selectedBackgroundImage.onload = () => updatePreview();
+  selectedBackgroundImage.onerror = () => updatePreview(); // 画像がなくても続行
+}
+
+function toggleInputSection(isZenkan) {
+  if (isZenkan) {
+    standardCoverSection.style.display = 'none';
+    zenkanCoverSection.style.display = 'block';
+  } else {
+    standardCoverSection.style.display = 'block';
+    zenkanCoverSection.style.display = 'none';
   }
 }
 
@@ -156,13 +248,35 @@ function handleCoverImageUpload(event) {
   reader.readAsDataURL(file);
 }
 
+// 全巻用画像アップロード
+function handleZenkanImageUpload(event, index) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  zenkanFiles[index] = file;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.src = e.target.result;
+    img.onload = () => {
+      zenkanImages[index] = img;
+      updatePreview();
+    };
+  };
+  reader.readAsDataURL(file);
+}
 // プレビュー更新
 function updatePreview() {
   // 背景画像のサイズに合わせてキャンバスサイズを調整
   let canvasWidth = DEFAULT_CANVAS_WIDTH;
   let canvasHeight = DEFAULT_CANVAS_HEIGHT;
 
-  if (selectedBackgroundImage) {
+  if (isZenkanMode) {
+    // 全巻モードは1280x1280固定
+    canvasWidth = 1280;
+    canvasHeight = 1280;
+  } else if (selectedBackgroundImage) {
     // 背景画像の元のサイズを使用
     canvasWidth = selectedBackgroundImage.width;
     canvasHeight = selectedBackgroundImage.height;
@@ -175,19 +289,72 @@ function updatePreview() {
   // キャンバスをクリア
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-  // 背景画像を描画
-  if (selectedBackgroundImage) {
-    ctx.drawImage(selectedBackgroundImage, 0, 0, canvasWidth, canvasHeight);
-  } else {
-    // デフォルト背景(グレー)
-    ctx.fillStyle = '#2d2d44';
+  if (isZenkanMode) {
+    // 全巻モードは背景白
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-  }
+    drawZenkanComposition();
+  } else {
+    // 背景画像を描画
+    if (selectedBackgroundImage && selectedBackgroundImage.complete && selectedBackgroundImage.naturalWidth > 0) {
+      ctx.drawImage(selectedBackgroundImage, 0, 0, canvasWidth, canvasHeight);
+    } else {
+      // デフォルト背景(グレー)
+      ctx.fillStyle = '#2d2d44';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    }
 
-  // 表紙画像を描画
-  if (coverImage) {
-    drawCoverWithShadow(canvasWidth, canvasHeight);
+    // 表紙画像を描画
+    if (coverImage) {
+      drawCoverWithShadow(canvasWidth, canvasHeight);
+    }
   }
+}
+
+// 全巻合成描画
+function drawZenkanComposition() {
+  ZENKAN_COORDS.forEach((coord, i) => {
+    const img = zenkanImages[i];
+    if (img) {
+      // アスペクト比維持で枠内を埋める (object-fit: cover)
+      const imgAspect = img.width / img.height;
+      const areaAspect = coord.w / coord.h;
+
+      let drawW, drawH, drawX, drawY;
+
+      if (imgAspect > areaAspect) {
+        // 画像の方が横長 -> 高さを合わせる
+        drawH = coord.h;
+        drawW = coord.h * imgAspect;
+        drawX = coord.x + (coord.w - drawW) / 2;
+        drawY = coord.y;
+      } else {
+        // 画像の方が縦長 -> 幅を合わせる
+        drawW = coord.w;
+        drawH = coord.w / imgAspect;
+        drawX = coord.x;
+        drawY = coord.y + (coord.h - drawH) / 2;
+      }
+
+      // クリップして描画
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(coord.x, coord.y, coord.w, coord.h);
+      ctx.clip();
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      ctx.restore();
+    } else {
+      // プレースホルダー番号
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.fillRect(coord.x, coord.y, coord.w, coord.h);
+
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 80px "Segoe UI"';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(i + 1, coord.x + coord.w / 2, coord.y + coord.h / 2);
+    }
+  });
 }
 
 // 表紙画像をドロップシャドウ付きで描画
@@ -215,7 +382,16 @@ function drawCoverWithShadow(canvasWidth, canvasHeight) {
   }
 
   // センター配置の座標を計算
-  const x = (canvasWidth - drawWidth) / 2;
+  let x;
+  if (currentPosition === 'left') {
+    // 左から500pxの位置にセンター
+    // 画像の幅の半分を引く
+    x = 500 - (drawWidth / 2);
+  } else {
+    // 中央
+    x = (canvasWidth - drawWidth) / 2;
+  }
+
   const y = (canvasHeight - drawHeight) / 2;
 
   // ドロップシャドウを設定
@@ -251,7 +427,12 @@ function drawInitialCanvas() {
 
 // PNG画像としてダウンロード
 function downloadImage() {
-  if (!selectedBackgroundImage && !coverImage) {
+  if (isZenkanMode) {
+    if (!zenkanImages.some(img => img !== null)) {
+      alert('少なくとも1枚の画像をアップロードしてください');
+      return;
+    }
+  } else if (!selectedBackgroundImage && !coverImage) {
     alert('背景画像または表紙画像を選択してください');
     return;
   }
@@ -259,14 +440,15 @@ function downloadImage() {
   // ファイル名を生成
   let filename = 'thumbnail';
 
-  if (coverImageFile) {
+  if (isZenkanMode) {
+    // 全巻モードのファイル名
+    const timestamp = getTimestamp();
+    filename = `zenkan_thumbnail_${timestamp}`;
+  } else if (coverImageFile) {
     // 元画像のファイル名(拡張子を除く)
     const originalName = coverImageFile.name.replace(/\.[^/.]+$/, '');
-
     // タイムスタンプ(年月日時分)
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-
+    const timestamp = getTimestamp();
     filename = `${originalName}_サムネ_${timestamp}`;
   } else {
     // 表紙画像がない場合はタイムスタンプのみ
@@ -309,4 +491,9 @@ function downloadImage() {
         }
       });
   }, 'image/png');
+}
+
+function getTimestamp() {
+  const now = new Date();
+  return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
 }

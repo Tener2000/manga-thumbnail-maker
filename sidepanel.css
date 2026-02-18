@@ -142,6 +142,60 @@ h2 {
   display: none;
 }
 
+/* 配置コントロール */
+.position-controls {
+  margin-top: 15px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.position-controls label {
+  font-size: 14px;
+  color: #e0e0e0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.position-controls input[type="radio"] {
+  accent-color: #667eea;
+  cursor: pointer;
+}
+
+/* 全巻特典用入力エリア */
+.zenkan-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.zenkan-inputs label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.zenkan-inputs label:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.zenkan-inputs input[type="file"] {
+  display: block;
+  /* label内で表示させる、またはcustom styling */
+  width: auto;
+  font-size: 12px;
+}
+
 /* ボタン */
 .btn {
   padding: 10px 20px;

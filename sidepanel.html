@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>漫画サムネイルメーカー</title>
   <link rel="stylesheet" href="sidepanel.css">
 </head>
+
 <body>
   <div class="container">
     <header>
@@ -33,10 +35,26 @@
     </section>
 
     <!-- センター配置画像アップロード -->
-    <section class="section">
+    <section class="section" id="standardCoverSection">
       <h2>📖 表紙画像をアップロード</h2>
       <input type="file" id="coverImageInput" accept="image/*">
       <button id="uploadBtn" class="btn btn-primary">画像を選択</button>
+
+      <div class="position-controls">
+        <label>配置:</label>
+        <label><input type="radio" name="coverPosition" value="center" checked> 中央 (Center)</label>
+        <label><input type="radio" name="coverPosition" value="left"> 左寄せ (500px)</label>
+      </div>
+    </section>
+
+    <!-- 全巻購入特典用（3枚画像）アップロード -->
+    <section class="section" id="zenkanCoverSection" style="display: none;">
+      <h2>📚 全巻・書影画像 (3枚)</h2>
+      <div class="zenkan-inputs">
+        <label>画像① (左大): <input type="file" id="zenkanInput1" accept="image/*"></label>
+        <label>画像② (右上): <input type="file" id="zenkanInput2" accept="image/*"></label>
+        <label>画像③ (右下): <input type="file" id="zenkanInput3" accept="image/*"></label>
+      </div>
     </section>
 
     <!-- プレビュー -->
@@ -55,4 +73,5 @@
 
   <script src="sidepanel.js"></script>
 </body>
+
 </html>
