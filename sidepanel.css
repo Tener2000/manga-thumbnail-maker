@@ -115,27 +115,48 @@ h2 {
   font-size: 14px;
 }
 
-/* 登録コントロール */
+/* 見出し右側のコンパクトな背景登録 */
+.background-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.background-heading h2 {
+  min-width: 0;
+  margin-bottom: 0;
+  font-size: 16px;
+}
+
 .register-controls {
   display: flex;
-  gap: 10px;
+  gap: 4px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.register-controls .btn {
+  padding: 5px 8px;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .register-controls label {
-  font-size: 14px;
+  font-size: 11px;
   color: #c0c0c0;
 }
 
 .register-controls input[type="number"] {
-  width: 80px;
-  padding: 8px;
+  width: 44px;
+  padding: 4px;
+  font-size: 12px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.1);
   color: #e0e0e0;
-  font-size: 14px;
+
 }
 
 .register-controls input[type="file"] {
@@ -256,4 +277,39 @@ input[type="file"] {
   height: auto;
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+/* 通常背景は4枚ずつ、全巻・上下巻は固定表示 */
+.preset-item[hidden] {
+  display: none;
+}
+
+.preset-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.preset-pagination .btn {
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+#presetPageStatus {
+  font-size: 12px;
+  text-align: center;
+}
+
+.preset-pagination .btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
+.preset-mode-grid {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }

@@ -17,21 +17,35 @@
 
     <!-- 背景画像プリセット選択 -->
     <section class="section">
-      <h2>🎨 背景画像を選択</h2>
+      <div class="background-heading">
+        <h2>🎨 背景画像を選択</h2>
+        <div class="register-controls" role="group" aria-label="背景画像を登録">
+          <label for="slotNumber">番号</label>
+          <input type="number" id="slotNumber" min="1" max="10" value="7" title="登録番号（1〜10）">
+          <input type="file" id="registerImageInput" accept="image/*">
+          <button id="registerBtn" class="btn btn-secondary" title="指定した番号に背景画像を登録">背景登録</button>
+        </div>
+      </div>
       <div class="preset-grid" id="presetGrid">
         <!-- JavaScriptで動的に生成 -->
       </div>
+      <div class="preset-pagination" aria-label="背景のページ切り替え">
+        <button id="previousPresetPage" class="btn btn-secondary" aria-label="前の背景4枚" aria-controls="presetGrid">← 前へ</button>
+        <span id="presetPageStatus" role="status" aria-live="polite"></span>
+        <button id="nextPresetPage" class="btn btn-secondary" aria-label="次の背景4枚" aria-controls="presetGrid">次へ →</button>
+      </div>
+      <div class="preset-grid preset-mode-grid" id="modePresetGrid" aria-label="全巻・上下巻レイアウト"></div>
     </section>
 
-    <!-- ユーザー画像登録 -->
     <section class="section">
-      <h2>➕ 背景画像を登録</h2>
-      <div class="register-controls">
-        <label for="slotNumber">登録番号 (1-10):</label>
-        <input type="number" id="slotNumber" min="1" max="10" value="7">
-        <input type="file" id="registerImageInput" accept="image/*">
-        <button id="registerBtn" class="btn btn-secondary">登録</button>
+      <h2>📚 Amazonの商品ページから取り込み</h2>
+      <button id="importAmazonBtn" class="btn btn-primary">開いている商品の書影を取り込む</button>
+      <p id="amazonImportStatus" role="status" aria-live="polite"></p>
+      <div class="input-group">
+        <label for="bookTitleInput">保存する書名:</label>
+        <input type="text" id="bookTitleInput" placeholder="書名（全巻モード：書名＋全巻サムネ.png）">
       </div>
+      <p>全巻・上下巻モードでは、空いている枠へ順番に取り込みます。</p>
     </section>
 
     <!-- センター配置画像アップロード -->
@@ -50,6 +64,9 @@
     <!-- 全巻購入特典用（3枚画像）アップロード -->
     <section class="section" id="zenkanCoverSection" style="display: none;">
       <h2>📚 全巻・書影画像 (3枚)</h2>
+      <button id="importAmazonSeriesBtn" class="btn btn-primary">Amazonから第1〜3巻をまとめて取り込む</button>
+      <p id="amazonSeriesStatus" role="status" aria-live="polite"></p>
+      <p>第1巻→画像①、第2巻→画像②、第3巻→画像③に配置します。取り込み直すと3枚を入れ替えます。</p>
       <div class="zenkan-inputs">
         <label>画像① (左大): <input type="file" id="zenkanInput1" accept="image/*"></label>
         <label>画像② (右上): <input type="file" id="zenkanInput2" accept="image/*"></label>
@@ -74,6 +91,11 @@
       </div>
     </section>
 
+    <!-- ダウンロード -->
+    <section class="section">
+      <button id="downloadBtn" class="btn btn-success">💾 PNG画像として保存</button>
+    </section>
+
     <!-- Amazonアフィリエイトリンク作成 -->
     <section class="section">
       <h2>🔗 Amazonリンクジェネレーター</h2>
@@ -86,7 +108,9 @@
           <label for="affiliateIdInput">アフィリエイトタグ:</label>
           <input type="text" id="affiliateIdInput" placeholder="例: your-tag-22">
         </div>
-        <button id="generateLinkBtn" class="btn btn-primary" style="margin-top: 10px; width: 100%;">リンクを作成</button>
+        <button id="generateLinkBtn" class="btn btn-primary" style="margin-top: 10px; width: 100%;">開いている商品からリンク作成</button>
+        <button id="generateManualLinkBtn" class="btn btn-secondary" style="margin-top: 10px; width: 100%;">入力したASINでリンク作成</button>
+        <p id="amazonLinkStatus" role="status" aria-live="polite"></p>
         
         <div class="result-group" style="margin-top: 15px;">
           <input type="text" id="generatedLinkOutput" readonly placeholder="生成されたリンク">
@@ -95,10 +119,6 @@
       </div>
     </section>
 
-    <!-- ダウンロード -->
-    <section class="section">
-      <button id="downloadBtn" class="btn btn-success">💾 PNG画像として保存</button>
-    </section>
   </div>
 
   <script src="sidepanel.js"></script>
