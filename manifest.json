@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "漫画サムネイルメーカー",
-  "version": "2.0",
+  "version": "2.0.1",
   "description": "背景画像と漫画表紙を合成してサムネイル画像を作成",
   "permissions": [
     "storage",

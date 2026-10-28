@@ -79,15 +79,39 @@ const copyLinkBtn = document.getElementById('copyLinkBtn');
 
 // 初期化
 document.addEventListener('DOMContentLoaded', async () => {
-  // 保存されているアフィリエイトIDを読み込む
-  const result = await chrome.storage.local.get('affiliateId');
-  if (result.affiliateId) {
-    affiliateIdInput.value = result.affiliateId;
+  const initializationStatus = document.getElementById('initializationStatus');
+  const reportError = (message, error) => {
+    const detail = error?.message || String(error);
+    console.error(message, error);
+    // 古いHTMLとの混在時にも、無反応のままにしない。
+    const status = initializationStatus || amazonImportStatus;
+    if (status) {
+      status.hidden = false;
+      status.textContent += `${message}: ${detail}。 `;
+    }
+  };
+
+  // 保存設定の読み込みに失敗しても、ボタンは操作できるよう先に登録する。
+  try {
+    setupEventListeners();
+    drawInitialCanvas();
+  } catch (error) {
+    reportError('画面の初期化に失敗しました。拡張機能のファイル一式を更新して再読み込みしてください', error);
+    return;
   }
 
-  await loadPresets();
-  setupEventListeners();
-  drawInitialCanvas();
+  try {
+    const result = await chrome.storage.local.get('affiliateId');
+    if (result.affiliateId) affiliateIdInput.value = result.affiliateId;
+  } catch (error) {
+    reportError('保存済みタグを読み込めませんでした。タグを入力して利用できます', error);
+  }
+
+  try {
+    await loadPresets();
+  } catch (error) {
+    reportError('背景設定を読み込めませんでした。Amazonからの取り込みとリンク作成は操作できます', error);
+  }
 });
 
 // イベントリスナー設定
@@ -855,57 +879,70 @@ async function handleAmazonImport() {
 
 // 商品ページ内で同じシリーズの巻番号と書影を読み取る。
 async function readAmazonSeries() {
-  const normalize = text => text.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
-  const parseVolume = title => {
-    const text = title.normalize('NFKC').trim();
-    const match = text.match(/^(.*?)\s*\(\s*(?:第\s*)?(\d+)\s*巻?\s*\)(?:\s+.*)?$/)
-      || text.match(/^(.*?)\s*第?\s*(\d+)\s*巻(?:\s+.*)?$/)
-      || text.match(/^(.*?)\s+(\d+)(?:\s+.*)?$/);
-    return match && match[1].trim() ? { title: match[1].trim(), volume: Number(match[2]) } : null;
-  };
-  const title = document.querySelector('#productTitle, #ebooksProductTitle')?.textContent.trim();
-  if (!title) throw new Error('漫画の商品ページを開いてください。');
-  const current = parseVolume(title);
-  const seriesLink = document.querySelector('#seriesBulletWidget_feature_div a[href*="/dp/"], #seriesBulletWidget_feature_div a[href*="/gp/product/"]');
-  const seriesTitle = seriesLink?.textContent.trim().replace(/^.*?[:：]\s*/, '') || current?.title;
-  if (!seriesTitle) throw new Error('シリーズ名を特定できませんでした。各巻の画像を手動で選択してください。');
-  const books = new Map();
-  const collect = root => {
-    for (const link of root.querySelectorAll('a[href*="/dp/"], a[href*="/gp/product/"]')) {
-      const image = link.querySelector('img');
-      if (!image) continue;
-      const bookTitle = image.alt || link.getAttribute('aria-label') || link.querySelector('[data-test-id="itemTitle"]')?.textContent || '';
-      const book = parseVolume(bookTitle);
-      if (!book || book.volume < 1 || book.volume > 3 || normalize(book.title) !== normalize(seriesTitle)) continue;
-      const url = new URL(link.getAttribute('href'), location.href);
-      if (url.origin !== location.origin) continue;
-      const asin = url.pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})(?:\/|$)/i)?.[1];
-      if (!asin) continue;
-      const src = image.getAttribute('data-src') || image.getAttribute('src');
-      if (!src) continue;
-      const imageUrl = new URL(src, location.href).href;
-      const urls = [];
-      if (image.dataset.oldHires) urls.push(image.dataset.oldHires);
-      // Amazonの縮小指定を外した書影を優先し、取得できないときは表示画像を使う。
-      urls.push(imageUrl.replace(/\._[^/]+_\.(jpe?g|png|webp)(?:\?.*)?$/i, '.$1'), imageUrl);
-      if (!books.has(book.volume)) books.set(book.volume, { title: bookTitle.trim(), volume: book.volume, asin, urls: [...new Set(urls)] });
+  let step = 'シリーズ名の判定';
+  try {
+    const normalize = text => text.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
+    const parseVolume = title => {
+      const text = title.normalize('NFKC').trim();
+      const match = text.match(/^(.*?)\s*\(\s*(?:第\s*)?(\d+)\s*巻?\s*\)(?:\s+.*)?$/)
+        || text.match(/^(.*?)\s*第?\s*(\d+)\s*巻(?:\s+.*)?$/)
+        || text.match(/^(.*?)\s+(\d+)(?:\s+.*)?$/);
+      return match && match[1].trim() ? { title: match[1].trim(), volume: Number(match[2]) } : null;
+    };
+    const seriesPageTitle = document.querySelector('#collection-masthead__title')?.textContent.trim();
+    const title = document.querySelector('#productTitle, #ebooksProductTitle')?.textContent.trim() || seriesPageTitle;
+    if (!title) throw new Error('漫画の単巻ページまたはシリーズページを開いてください。');
+    const current = parseVolume(title);
+    const seriesLink = document.querySelector('#seriesBulletWidget_feature_div a[href*="/dp/"], #seriesBulletWidget_feature_div a[href*="/gp/product/"]');
+    const seriesTitle = seriesLink?.textContent.trim().replace(/^.*?[:：]\s*/, '') || current?.title || seriesPageTitle;
+    if (!seriesTitle) throw new Error('シリーズ名を特定できませんでした。各巻の画像を手動で選択してください。');
+    const books = new Map();
+    const collect = root => {
+      for (const link of root.querySelectorAll('a[href*="/dp/"], a[href*="/gp/product/"]')) {
+        const image = link.querySelector('img');
+        if (!image) continue;
+        const bookTitle = image.alt || link.getAttribute('aria-label') || link.querySelector('[data-test-id="itemTitle"]')?.textContent || '';
+        const book = parseVolume(bookTitle);
+        if (!book || book.volume < 1 || book.volume > 3 || normalize(book.title) !== normalize(seriesTitle)) continue;
+        let url;
+        try { url = new URL(link.getAttribute('href'), location.href); } catch (_) { continue; }
+        if (url.origin !== location.origin) continue;
+        const asin = url.pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})(?:\/|$)/i)?.[1];
+        if (!asin) continue;
+        const src = image.getAttribute('data-src') || image.getAttribute('src');
+        if (!src) continue;
+        let imageUrl;
+        try { imageUrl = new URL(src, location.href).href; } catch (_) { continue; }
+        const urls = [];
+        if (image.dataset.oldHires) urls.push(image.dataset.oldHires);
+        // Amazonの縮小指定を外した書影を優先し、取得できないときは表示画像を使う。
+        urls.push(imageUrl.replace(/\._[^/]+_\.(jpe?g|png|webp)(?:\?.*)?$/i, '.$1'), imageUrl);
+        if (!books.has(book.volume)) books.set(book.volume, { title: bookTitle.trim(), volume: book.volume, asin, urls: [...new Set(urls)] });
+      }
+    };
+    step = '商品ページ内の各巻の判定';
+    collect(document);
+    if (books.size < 3 && seriesLink) {
+      step = 'シリーズ一覧の取得';
+      const url = new URL(seriesLink.getAttribute('href'), location.href);
+      if (url.origin === location.origin && /^\/(?:dp|gp\/product)\/[A-Z0-9]{10}(?:\/|$)/i.test(url.pathname)) {
+        const response = await fetch(url.href, { signal: AbortSignal.timeout(15000) });
+        if (!response.ok) throw new Error('シリーズ一覧を取得できませんでした。しばらくしてから再試行してください。');
+        const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+        collect(page);
+      }
     }
-  };
-  collect(document);
-  if (books.size < 3 && seriesLink) {
-    const url = new URL(seriesLink.getAttribute('href'), location.href);
-    if (url.origin === location.origin && /^\/(?:dp|gp\/product)\/[A-Z0-9]{10}(?:\/|$)/i.test(url.pathname)) {
-      const response = await fetch(url.href, { signal: AbortSignal.timeout(15000) });
-      if (!response.ok) throw new Error('シリーズ一覧を取得できませんでした。しばらくしてから再試行してください。');
-      const page = new DOMParser().parseFromString(await response.text(), 'text/html');
-      collect(page);
-    }
+    step = '第1〜3巻の確認';
+    const missing = [1, 2, 3].filter(volume => !books.has(volume));
+    if (missing.length) throw new Error(`同じシリーズの第${missing.join('・')}巻が見つかりません。商品ページのシリーズ一覧を表示してから再試行するか、各枠から画像を選択してください。`);
+    const ordered = [1, 2, 3].map(volume => books.get(volume));
+    if (new Set(ordered.map(book => book.asin)).size !== 3) throw new Error('各巻を正しく区別できませんでした。各枠から画像を選択してください。');
+    return { title: seriesTitle, books: ordered };
+  } catch (error) {
+    // executeScript内の例外はブラウザーによって結果が空になるため、文字列で返す。
+    return { error: `${step}: ${error?.message || String(error)}` };
   }
-  const missing = [1, 2, 3].filter(volume => !books.has(volume));
-  if (missing.length) throw new Error(`同じシリーズの第${missing.join('・')}巻が見つかりません。商品ページのシリーズ一覧を表示してから再試行するか、各枠から画像を選択してください。`);
-  const ordered = [1, 2, 3].map(volume => books.get(volume));
-  if (new Set(ordered.map(book => book.asin)).size !== 3) throw new Error('各巻を正しく区別できませんでした。各枠から画像を選択してください。');
-  return { title: seriesTitle, books: ordered };
+
 }
 
 async function loadAmazonSeriesCover(book) {
@@ -944,6 +981,7 @@ async function handleAmazonSeriesImport() {
     if (!tab?.url || !/^https:\/\/(www\.)?amazon\.co\.jp\//i.test(tab.url)) throw new Error('Amazon.co.jpの商品ページで拡張機能アイコンを押してから再試行してください。');
     const [result] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: readAmazonSeries });
     if (!result?.result) throw new Error('シリーズ情報を取得できませんでした。商品ページの読み込み後に再試行してください。');
+    if (result.result.error) throw new Error(result.result.error);
     const series = result.result;
     amazonSeriesStatus.textContent = `「${series.title}」の第1〜3巻の書影を取得しています…`;
     const covers = await Promise.all(series.books.map(loadAmazonSeriesCover));
