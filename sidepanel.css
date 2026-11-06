@@ -189,6 +189,46 @@ h2 {
 }
 
 /* 全巻特典用入力エリア */
+#amazonSeriesStatus:not(:empty) {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid #8798e8;
+  border-radius: 8px;
+  background: rgba(102, 126, 234, 0.16);
+  color: #e7ebff;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+#amazonSeriesStatus[data-state="success"] {
+  border-color: #54c891;
+  background: rgba(42, 145, 99, 0.2);
+  color: #d2ffdf;
+}
+
+#amazonSeriesStatus[data-state="error"] {
+  border-color: #ff8585;
+  background: rgba(183, 55, 64, 0.24);
+  color: #ffe2e2;
+}
+
+#amazonSeriesStatus[data-state="success"]::before,
+#amazonSeriesStatus[data-state="error"]::before {
+  flex-shrink: 0;
+  font-weight: bold;
+}
+
+#amazonSeriesStatus[data-state="success"]::before {
+  content: "✓";
+}
+
+#amazonSeriesStatus[data-state="error"]::before {
+  content: "⚠";
+}
+
 .zenkan-inputs {
   display: flex;
   flex-direction: column;

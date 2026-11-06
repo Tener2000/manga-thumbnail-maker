@@ -1,10 +1,15 @@
-# 漫画サムネイルメーカー v2.0.1
+# 漫画サムネイルメーカー v2.1.0
 
 YouTube動画や販売ページ用のサムネイル画像を簡単に作成できるChrome拡張機能です。背景画像と漫画の表紙画像を組み合わせて、ドロップシャドウ付きのプロフェッショナルなサムネイルを作成できます。
 
 ![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green?logo=googlechrome)
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
+
+## v2.1.0 の変更
+
+- コロン区切りの巻番号や書名を含むシリーズ一覧の URL に対応
+- 第1〜3巻の取り込み結果を成功・失敗・処理中の色とマークで表示
 
 ## v2.0.1 の修正
 

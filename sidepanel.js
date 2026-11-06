@@ -884,7 +884,8 @@ async function readAmazonSeries() {
     const normalize = text => text.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
     const parseVolume = title => {
       const text = title.normalize('NFKC').trim();
-      const match = text.match(/^(.*?)\s*\(\s*(?:第\s*)?(\d+)\s*巻?\s*\)(?:\s+.*)?$/)
+      const match = text.match(/^(.*?)\s*[:：]\s*(?:第\s*)?(\d+)\s*巻?(?:\s+.*)?$/)
+        || text.match(/^(.*?)\s*\(\s*(?:第\s*)?(\d+)\s*巻?\s*\)(?:\s+.*)?$/)
         || text.match(/^(.*?)\s*第?\s*(\d+)\s*巻(?:\s+.*)?$/)
         || text.match(/^(.*?)\s+(\d+)(?:\s+.*)?$/);
       return match && match[1].trim() ? { title: match[1].trim(), volume: Number(match[2]) } : null;
@@ -925,7 +926,7 @@ async function readAmazonSeries() {
     if (books.size < 3 && seriesLink) {
       step = 'シリーズ一覧の取得';
       const url = new URL(seriesLink.getAttribute('href'), location.href);
-      if (url.origin === location.origin && /^\/(?:dp|gp\/product)\/[A-Z0-9]{10}(?:\/|$)/i.test(url.pathname)) {
+      if (url.origin === location.origin && /\/(?:dp|gp\/product)\/[A-Z0-9]{10}(?:\/|$)/i.test(url.pathname)) {
         const response = await fetch(url.href, { signal: AbortSignal.timeout(15000) });
         if (!response.ok) throw new Error('シリーズ一覧を取得できませんでした。しばらくしてから再試行してください。');
         const page = new DOMParser().parseFromString(await response.text(), 'text/html');
@@ -971,6 +972,7 @@ async function loadAmazonSeriesCover(book) {
 async function handleAmazonSeriesImport() {
   importAmazonBtn.disabled = true;
   importAmazonSeriesBtn.disabled = true;
+  amazonSeriesStatus.dataset.state = 'loading';
   amazonSeriesStatus.textContent = '同じシリーズの第1〜3巻を探しています…';
   const originalImages = [...zenkanImages];
   const originalFiles = [...zenkanFiles];
@@ -993,8 +995,10 @@ async function handleAmazonSeriesImport() {
     zenkanInputs.forEach(input => { input.value = ''; });
     bookTitleInput.value = series.title;
     updatePreview();
-    amazonSeriesStatus.textContent = `「${series.title}」の第1巻→画像①、第2巻→画像②、第3巻→画像③に取り込みました。保存名：${sanitizeBookTitle(series.title)}全巻サムネ.png`;
+    amazonSeriesStatus.dataset.state = 'success';
+    amazonSeriesStatus.textContent = `取り込み完了: 「${series.title}」の第1巻→画像①、第2巻→画像②、第3巻→画像③に取り込みました。保存名：${sanitizeBookTitle(series.title)}全巻サムネ.png`;
   } catch (error) {
+    amazonSeriesStatus.dataset.state = 'error';
     amazonSeriesStatus.textContent = `取り込み失敗: ${error.message}`;
   } finally {
     importAmazonBtn.disabled = false;
