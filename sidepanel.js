@@ -817,6 +817,7 @@ function readAmazonProduct() {
 async function handleAmazonImport() {
   importAmazonBtn.disabled = true;
   importAmazonSeriesBtn.disabled = true;
+  amazonImportStatus.dataset.state = 'loading';
   amazonImportStatus.textContent = '書影を取得しています…';
   const mode = isZenkanMode ? 'zenkan' : isJogekanMode ? 'jogekan' : 'standard';
   const images = mode === 'zenkan' ? zenkanImages : mode === 'jogekan' ? jogekanImages : null;
@@ -868,8 +869,10 @@ async function handleAmazonImport() {
     }
     bookTitleInput.value = product.title;
     updatePreview();
-    amazonImportStatus.textContent = `「${product.title}」を${images ? `画像${slot + 1}に` : ''}取り込みました。`;
+    amazonImportStatus.dataset.state = 'success';
+    amazonImportStatus.textContent = `取り込み完了: 「${product.title}」を${images ? `画像${slot + 1}に` : ''}取り込みました。`;
   } catch (error) {
+    amazonImportStatus.dataset.state = 'error';
     amazonImportStatus.textContent = `取り込み失敗: ${error.message}`;
   } finally {
     importAmazonBtn.disabled = false;

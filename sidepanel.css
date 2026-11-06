@@ -189,7 +189,7 @@ h2 {
 }
 
 /* 全巻特典用入力エリア */
-#amazonSeriesStatus:not(:empty) {
+:is(#amazonImportStatus, #amazonSeriesStatus):not(:empty) {
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -203,29 +203,29 @@ h2 {
   overflow-wrap: anywhere;
 }
 
-#amazonSeriesStatus[data-state="success"] {
+:is(#amazonImportStatus, #amazonSeriesStatus)[data-state="success"] {
   border-color: #54c891;
   background: rgba(42, 145, 99, 0.2);
   color: #d2ffdf;
 }
 
-#amazonSeriesStatus[data-state="error"] {
+:is(#amazonImportStatus, #amazonSeriesStatus)[data-state="error"] {
   border-color: #ff8585;
   background: rgba(183, 55, 64, 0.24);
   color: #ffe2e2;
 }
 
-#amazonSeriesStatus[data-state="success"]::before,
-#amazonSeriesStatus[data-state="error"]::before {
+:is(#amazonImportStatus, #amazonSeriesStatus)[data-state="success"]::before,
+:is(#amazonImportStatus, #amazonSeriesStatus)[data-state="error"]::before {
   flex-shrink: 0;
   font-weight: bold;
 }
 
-#amazonSeriesStatus[data-state="success"]::before {
+:is(#amazonImportStatus, #amazonSeriesStatus)[data-state="success"]::before {
   content: "✓";
 }
 
-#amazonSeriesStatus[data-state="error"]::before {
+:is(#amazonImportStatus, #amazonSeriesStatus)[data-state="error"]::before {
   content: "⚠";
 }
 
